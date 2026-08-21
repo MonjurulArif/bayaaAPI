@@ -18,6 +18,7 @@ namespace bayaaAPI.Controllers
             _context = context;
         }
 
+
         [HttpGet]
         public async Task<ActionResult<IEnumerable<ProductDto>>> GetProducts()
         {
@@ -57,5 +58,75 @@ namespace bayaaAPI.Controllers
 
             return CreatedAtAction(nameof(GetProducts), new { id = product.Id }, product);
         }
+
+
+        [HttpGet("{id}")]
+        public async Task<ActionResult<ProductDto>> GetProduct(int id)
+        {
+            var product = await _context.Products.Include(p => p.Category).FirstOrDefaultAsync(p => p.Id == id);
+
+            if(product == null)
+            {
+                return NotFound();
+            }
+
+            var dto = new ProductDto
+            {
+                Id = product.Id,
+                Slug = product.Slug,
+                Name = product.Name,
+                Price = product.Price,
+                Thumbnail = product.Thumbnail,
+                Category = product.Category?.Name ?? string.Empty,
+                Rating = product.Rating,
+                Reviews = product.Reviews,
+                Stock = product.Stock
+            };
+
+            return Ok(dto);
+        }
+
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateProduct(int id, UpdateProductDto dto)
+        {
+            var product = await _context.Products.FindAsync(id);
+
+            if(product == null)
+            {
+                return NotFound();
+            }
+
+            product.Slug = dto.Slug;
+            product.Name = dto.Name;
+            product.Price = dto.Price;
+            product.Thumbnail = dto.Thumbnail;
+            product.Description = dto.Description;
+            product.Stock = dto.Stock;
+            product.CategoryId = dto.CategoryId;
+
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteProduct(int id)
+        {
+            var product = await _context.Products.FindAsync(id);
+
+            if(product == null)
+            {
+                return NotFound();
+            }
+
+            _context.Products.Remove(product);
+
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
     }
 }
