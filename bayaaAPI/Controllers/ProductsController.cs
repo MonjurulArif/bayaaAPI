@@ -20,9 +20,72 @@ namespace bayaaAPI.Controllers
 
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<ProductDto>>> GetProducts()
+        public async Task<ActionResult<IEnumerable<ProductDto>>> GetProducts(
+            [FromQuery] ProductQueryDto query)
         {
-            var products = await _context.Products
+            // Get all products with their categories by joining the Products and Categories tables
+            var products = _context.Products
+                .Include(p => p.Category)
+                .AsQueryable();
+
+            // Search Filter
+            if(!string.IsNullOrWhiteSpace(query.Search))
+            {
+                products = products.Where(p => p.Name.Contains(query.Search));                
+            }
+
+            // Category Filter
+            if(query.CategoryId.HasValue)
+            {
+                products = products.Where(p => p.CategoryId == query.CategoryId.Value);
+            }
+
+            //Min Price Filter
+            if(query.MinPrice.HasValue)
+            {
+                products = products.Where(p => p.Price >= query.MinPrice.Value);
+            }
+
+            //Max Price Filter
+            if(query.MaxPrice.HasValue)
+            {
+                products = products.Where(p => p.Price <= query.MaxPrice.Value);
+            }
+
+            // In Stock Filter
+            if(query.InStock == true)
+            {
+                products = products.Where(p => p.Stock > 0);
+            }
+
+            // Sorting
+            if(!string.IsNullOrWhiteSpace(query.Sort))
+            {
+                switch(query.Sort.ToLower())
+                {
+                    case "price-asc":
+                        products = products.OrderBy(p => p.Price);
+                        break;
+                    case "price-desc":
+                        products = products.OrderByDescending(p => p.Price);
+                        break;
+                    case "name-asc":
+                        products = products.OrderBy(p => p.Name);
+                        break;
+                    case "name-desc":
+                        products = products.OrderByDescending(p => p.Name);
+                        break;
+                    default:
+                        break;
+                }
+            }
+
+            var totalProducts = await products.CountAsync();
+
+            // Pagination
+            var items = await products
+                .Skip((query.Page - 1) * query.PageSize)
+                .Take(query.PageSize)
                 .Select(p => new ProductDto
                 {
                     Id = p.Id,
@@ -34,9 +97,16 @@ namespace bayaaAPI.Controllers
                     Rating = p.Rating,
                     Reviews = p.Reviews,
                     Stock = p.Stock
-                }).ToListAsync();
+                })
+                .ToListAsync();
 
-            return Ok(products);
+            return Ok(new
+            {
+                TotalProducts = totalProducts,
+                Page = query.Page,
+                PageSize = query.PageSize,
+                Products = items
+            });
         }
 
 
