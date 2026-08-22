@@ -1,4 +1,6 @@
 ﻿using bayaaAPI.Data;
+using bayaaAPI.DTOs;
+using bayaaAPI.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,10 +18,93 @@ namespace bayaaAPI.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetCategories()
+        public async Task<ActionResult<IEnumerable<CategoryDto>>> GetCategories()
         {
-            var categories = await _context.Categories.ToListAsync();
+            var categories = await _context.Categories
+                .Select(c => new CategoryDto
+                {
+                    Id = c.Id,
+                    Name = c.Name,
+                    Slug = c.Slug
+                }).ToListAsync();
+
             return Ok(categories);
         }
+
+
+        [HttpGet("{id}")]
+        public async Task<ActionResult<CategoryDto>> GetCategory(int id)
+        {
+            var category = await _context.Categories.FindAsync(id);
+
+            if(category == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(new CategoryDto
+            {
+                Id = category.Id,
+                Name = category.Name,
+                Slug = category.Slug
+            });
+        }
+
+
+        [HttpPost]
+        public async Task<ActionResult> CreateCategory(CreateCategoryDto dto)
+        {
+            var category = new Category
+            {
+                Name = dto.Name,
+                Slug = dto.Slug
+            };
+
+            _context.Categories.Add(category);
+
+            await _context.SaveChangesAsync();
+
+            return CreatedAtAction(nameof(GetCategory), new { id = category.Id }, category);
+        }
+
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateCategory(int id, UpdateCategoryDto dto)
+        {
+            var category = await _context.Categories.FindAsync(id);
+
+            if(category == null)
+            {
+                return NotFound();
+            }
+
+            category.Name = dto.Name;
+            category.Slug = dto.Slug;
+
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
+
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteCategory(int id)
+        {
+            var category = await _context.Categories.FindAsync(id);
+
+            if(category == null)
+            {
+                return NotFound();
+            }
+
+            _context.Categories.Remove(category);
+
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
+
     }
 }

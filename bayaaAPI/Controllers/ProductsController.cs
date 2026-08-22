@@ -22,18 +22,20 @@ namespace bayaaAPI.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<ProductDto>>> GetProducts()
         {
-            var products = await _context.Products.Select(p => new ProductDto
-            {
-                Id = p.Id,
-                Slug = p.Slug,
-                Name = p.Name,
-                Price = p.Price,
-                Thumbnail = p.Thumbnail,
-                Category = p.Category != null ? p.Category.Name : string.Empty,
-                Rating = p.Rating,
-                Reviews = p.Reviews,
-                Stock = p.Stock
-            }).ToListAsync();
+            var products = await _context.Products
+                .Select(p => new ProductDto
+                {
+                    Id = p.Id,
+                    Slug = p.Slug,
+                    Name = p.Name,
+                    Price = p.Price,
+                    Thumbnail = p.Thumbnail,
+                    Category = p.Category != null ? p.Category.Name : string.Empty,
+                    Rating = p.Rating,
+                    Reviews = p.Reviews,
+                    Stock = p.Stock
+                }).ToListAsync();
+
             return Ok(products);
         }
 
@@ -63,7 +65,8 @@ namespace bayaaAPI.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<ProductDto>> GetProduct(int id)
         {
-            var product = await _context.Products.Include(p => p.Category).FirstOrDefaultAsync(p => p.Id == id);
+            var product = await _context.Products
+                .Include(p => p.Category).FirstOrDefaultAsync(p => p.Id == id);
 
             if(product == null)
             {
