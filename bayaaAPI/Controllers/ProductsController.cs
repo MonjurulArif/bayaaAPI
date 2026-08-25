@@ -93,6 +93,128 @@ namespace bayaaAPI.Controllers
                     Name = p.Name,
                     Price = p.Price,
                     Thumbnail = p.Thumbnail,
+                    CategoryId = p.CategoryId,
+                    Category = p.Category != null ? p.Category.Name : string.Empty,
+                    Rating = p.Rating,
+                    Reviews = p.Reviews,
+                    Stock = p.Stock
+                })
+                .ToListAsync();
+
+            return Ok(new
+            {
+                TotalProducts = totalProducts,
+                Page = query.Page,
+                PageSize = query.PageSize,
+                Products = items
+            });
+        }
+
+
+        [HttpGet("slug/{slug}")]
+        public async Task<ActionResult<ProductDto>> GetProductBySlug(string slug)
+        {
+            var product = await _context.Products
+                .Include(p => p.Category)
+                .FirstOrDefaultAsync(p => p.Slug == slug);
+
+            if(product == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(new ProductDto
+            {
+                Id = product.Id,
+                Slug = product.Slug,
+                Name = product.Name,
+                Price = product.Price,
+                Thumbnail = product.Thumbnail,
+                CategoryId = product.CategoryId,
+                Category = product.Category != null ? product.Category.Name : string.Empty,
+                Rating = product.Rating,
+                Reviews = product.Reviews,
+                Stock = product.Stock
+            });
+        }
+
+
+        [HttpGet("category/{slug}")]
+        public async Task<ActionResult> GetProductsByCategory(
+            string slug, [FromQuery] ProductQueryDto query)
+        {
+            var products = _context.Products
+                .Include(p => p.Category)
+                .Where(p => p.Category != null && p.Category.Slug == slug)
+                .AsQueryable();
+
+            // Search
+            if(!string.IsNullOrWhiteSpace(query.Search))
+            {
+                products = products.Where(p =>
+                    p.Name.Contains(query.Search) ||
+                    p.Description.Contains(query.Search));
+            }
+
+            // Min price
+            if(query.MinPrice.HasValue)
+            {
+                products = products.Where(
+                    p => p.Price >= query.MinPrice.Value);
+            }
+
+            // Max price
+            if(query.MaxPrice.HasValue)
+            {
+                products = products.Where(
+                    p => p.Price <= query.MaxPrice.Value);
+            }
+
+            // Rating filter            
+
+            // Stock
+            if(query.InStock == true)
+            {
+                products = products.Where(p => p.Stock > 0);
+            }
+
+            // Sorting
+            switch(query.Sort)
+            {
+                case "price-asc":
+                products = products.OrderBy(p => p.Price);
+                break;
+
+                case "price-desc":
+                products = products.OrderByDescending(p => p.Price);
+                break;
+
+                case "name-asc":
+                products = products.OrderBy(p => p.Name);
+                break;
+
+                case "name-desc":
+                products = products.OrderByDescending(p => p.Name);
+                break;
+
+                default:
+                products = products.OrderBy(p => p.Id);
+                break;
+            }
+
+            var totalProducts = await products.CountAsync();
+
+            var items = await products
+                .Skip((query.Page - 1) * query.PageSize)
+                .Take(query.PageSize)
+                .Select(p => new ProductDto
+                {
+                    Id = p.Id,
+                    Slug = p.Slug,
+                    Name = p.Name,
+                    Price = p.Price,
+                    Thumbnail = p.Thumbnail,
+                    CategoryId = p.CategoryId,
                     Category = p.Category != null ? p.Category.Name : string.Empty,
                     Rating = p.Rating,
                     Reviews = p.Reviews,

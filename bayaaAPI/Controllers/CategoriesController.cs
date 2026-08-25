@@ -106,5 +106,24 @@ namespace bayaaAPI.Controllers
         }
 
 
+        [HttpGet("slug/{slug}")]
+        public async Task<ActionResult<CategoryDto>> GetCategoryBySlug(string slug)
+        {
+            var category = await _context.Categories
+                .FirstOrDefaultAsync(c => c.Slug == slug);
+
+            if(category == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(new CategoryDto
+            {
+                Id = category.Id,
+                Name = category.Name,
+                Slug = category.Slug
+            });
+        }
+
     }
 }
