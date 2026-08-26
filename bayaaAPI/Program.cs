@@ -8,17 +8,30 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 
 // CORS configuration to allow requests from the frontend application
+//builder.Services.AddCors(options =>
+//{
+//    options.AddPolicy("Bayaa", policy =>
+//    {
+//        policy
+//            .WithOrigins(
+//                "http://localhost:3000",
+//                "http://192.168.0.107:3000"
+//            )
+//            .AllowAnyHeader()
+//            .AllowAnyMethod();
+//    });
+//});
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("Bayaa", policy =>
     {
         policy
-            .WithOrigins("http://localhost:3000")
+            .AllowAnyOrigin()
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
 });
-
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -28,10 +41,12 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 //builder.Services.AddOpenApi();
 
+//Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
 
 
 // Configure the HTTP request pipeline.
@@ -40,15 +55,20 @@ var app = builder.Build();
 //    app.MapOpenApi();
 //}
 
-//if(app.Environment.IsDevelopment())
-//{
-app.UseSwagger();
+//Swagger
+if(app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
     app.UseSwaggerUI();
-//}
+}
 
-app.UseHttpsRedirection();
-
+//CORS
 app.UseCors("Bayaa");
+
+
+
+//app.UseHttpsRedirection();
+
 
 app.UseAuthorization();
 

@@ -23,6 +23,11 @@ namespace bayaaAPI.Controllers
         public async Task<ActionResult<IEnumerable<ProductDto>>> GetProducts(
             [FromQuery] ProductQueryDto query)
         {
+
+            // Fix invalid pagination values
+            var page = query.Page < 1 ? 1 : query.Page;
+            var pageSize = query.PageSize < 1 ? 20 : query.PageSize;
+
             // Get all products with their categories by joining the Products and Categories tables
             var products = _context.Products
                 .Include(p => p.Category)
@@ -31,7 +36,11 @@ namespace bayaaAPI.Controllers
             // Search Filter
             if(!string.IsNullOrWhiteSpace(query.Search))
             {
-                products = products.Where(p => p.Name.Contains(query.Search));                
+                var search = $"%{query.Search}%";
+
+                products = products.Where(p => 
+                   EF.Functions.ILike(p.Name, search) ||
+                   EF.Functions.ILike(p.Description, search));                
             }
 
             // Category Filter
@@ -50,6 +59,12 @@ namespace bayaaAPI.Controllers
             if(query.MaxPrice.HasValue)
             {
                 products = products.Where(p => p.Price <= query.MaxPrice.Value);
+            }
+
+            // Rating Filter
+            if(query.Rating.HasValue)
+            {
+                products = products.Where(p => p.Rating >= query.Rating.Value);
             }
 
             // In Stock Filter
@@ -76,15 +91,21 @@ namespace bayaaAPI.Controllers
                         products = products.OrderByDescending(p => p.Name);
                         break;
                     default:
+                        products = products.OrderBy(p => p.Id);
                         break;
                 }
+            }
+            else
+            {
+                products = products.OrderBy(p => p.Id);
             }
 
             var totalProducts = await products.CountAsync();
 
+
             // Pagination
             var items = await products
-                .Skip((query.Page - 1) * query.PageSize)
+                .Skip((page - 1) * pageSize)
                 .Take(query.PageSize)
                 .Select(p => new ProductDto
                 {
@@ -101,17 +122,19 @@ namespace bayaaAPI.Controllers
                 })
                 .ToListAsync();
 
+            // Response
             return Ok(new
             {
                 TotalProducts = totalProducts,
                 Page = query.Page,
                 PageSize = query.PageSize,
+                TotalPages = (int)Math.Ceiling( totalProducts / (double)pageSize),
                 Products = items
             });
         }
 
 
-        [HttpGet("slug/{slug}")]
+        [HttpGet("{slug}")]
         public async Task<ActionResult<ProductDto>> GetProductBySlug(string slug)
         {
             var product = await _context.Products
@@ -254,7 +277,7 @@ namespace bayaaAPI.Controllers
         }
 
 
-        [HttpGet("{id}")]
+        [HttpGet("id/{id}")]
         public async Task<ActionResult<ProductDto>> GetProduct(int id)
         {
             var product = await _context.Products

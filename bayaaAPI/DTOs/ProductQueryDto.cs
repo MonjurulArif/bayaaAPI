@@ -10,6 +10,8 @@
 
         public decimal? MaxPrice { get; set; }
 
+        public double? Rating { get; set; }
+
         public bool? InStock { get; set; }
 
         public string? Sort { get; set; }
