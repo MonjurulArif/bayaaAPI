@@ -4,6 +4,11 @@ using bayaaAPI.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using Microsoft.AspNetCore.Authorization;
 
 namespace bayaaAPI.Controllers
 {
@@ -12,10 +17,12 @@ namespace bayaaAPI.Controllers
     public class AuthController : ControllerBase
     {
         private readonly AppDbContext _context;
-        
-        public AuthController(AppDbContext context)
+        private readonly IConfiguration _configuration;
+
+        public AuthController(AppDbContext context, IConfiguration configuration)
         {
             _context = context;
+            _configuration = configuration;
         }
 
 
@@ -96,6 +103,30 @@ namespace bayaaAPI.Controllers
                 return Unauthorized( new { message = "Invalid email/mobile or password." });
             }
 
+
+            // JWT string generation            
+            var jwtSettings = _configuration.GetSection("Jwt");
+
+            var claims = new[]
+            {
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new Claim(ClaimTypes.Name, user.Email ?? user.Mobile ?? "")
+            };
+
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Key"]!));
+
+            var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+            var token = new JwtSecurityToken(
+                            issuer: jwtSettings["Issuer"],
+                            audience: jwtSettings["Audience"],
+                            claims: claims,
+                            expires: DateTime.UtcNow.AddDays(7),
+                            signingCredentials: credentials);
+
+            // WriteToken() converts it into the actual JWT string. Has three parts HEADER.PAYLOAD.SIGNATURE
+            var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
+
             var userDto = new UserDto
             {
                 Id = user.Id,
@@ -110,9 +141,21 @@ namespace bayaaAPI.Controllers
                 Address = user.Address
             };
 
-            return Ok( new { message = "Login successful.", user = userDto });
+            return Ok( new { token = tokenString, message = "Login successful.", user = userDto });
 
         }
+
+
+        [Authorize]
+        [HttpGet("me")]
+        public async Task<IActionResult> Me()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            return Ok(new { userId });
+        }
+
+
 
     }
 }
