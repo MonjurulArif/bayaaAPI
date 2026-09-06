@@ -1,4 +1,6 @@
-﻿namespace bayaaAPI.Models
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace bayaaAPI.Models
 {
     public class Product
     {
@@ -19,6 +21,8 @@
         public int Reviews { get; set; }
 
         public int Stock { get; set; }
+
+        public uint Version { get; set; }
 
         public int? CategoryId { get; set; }
 
