@@ -198,7 +198,7 @@ namespace bayaaAPI.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<OrderDto>>> GetOrders()
         {
-            var userId = int.Parse( User.FindFirst(ClaimTypes.NameIdentifier)!.Value );
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
 
             var orders = await _context.Orders
                 .Where(o => o.UserId == userId)
@@ -288,7 +288,7 @@ namespace bayaaAPI.Controllers
                 })
                 .FirstOrDefaultAsync();
 
-            if (order == null)
+            if(order == null)
             {
                 return NotFound("Order not found");
             }
@@ -296,5 +296,65 @@ namespace bayaaAPI.Controllers
             return Ok(order);
         }
 
+
+        [HttpPut("{id}/status")]
+        public async Task<IActionResult> UpdateOrderStatus(int id, UpdateOrderStatusDto dto)
+        {
+            var order = await _context.Orders.FirstOrDefaultAsync(o => o.Id == id);
+
+            if(order == null)
+            {
+                return NotFound("Order not found");
+            }
+
+            var allowedStatuses = new[]
+            {
+                "Pending",
+                "Processing",
+                "Shipped",
+                "Delivered",
+                "Cancelled"
+            };
+
+            if(!allowedStatuses.Contains(dto.Status, StringComparer.OrdinalIgnoreCase))
+            {
+                return BadRequest("Invalid order status.");
+            }
+
+            order.Status = dto.Status;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                order.Id,
+                order.OrderNumber,
+                order.Status
+            });
+
+        }
+
+
+        [HttpGet("admin")]
+        public async Task<IActionResult> GetAllOrders()
+        {
+            var orders = await _context.Orders
+                .OrderByDescending(o => o.CreatedAt)
+                .Select(o => new
+                {
+                    o.Id,
+                    o.OrderNumber,
+                    o.CustomerName,
+                    o.Mobile,
+                    o.TotalAmount,
+                    o.Status,
+                    o.CreatedAt
+                })
+                .ToListAsync();
+
+            return Ok(orders);
+
+
+        }
     }
 }
