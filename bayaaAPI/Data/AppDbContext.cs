@@ -14,6 +14,7 @@ namespace bayaaAPI.Data
         public DbSet<User> Users { get; set; }
         public DbSet<Order> Orders => Set<Order>();
         public DbSet<OrderItem> OrderItems => Set<OrderItem>();
+        public DbSet<WishlistItem> WishlistItems { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -49,7 +50,15 @@ namespace bayaaAPI.Data
                 .HasForeignKey(oi => oi.ProductId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            
+            modelBuilder.Entity<WishlistItem>()
+            .HasIndex(x => new
+            {
+                x.UserId,
+                x.ProductId
+            })
+            .IsUnique();
+
+
 
         }
 
