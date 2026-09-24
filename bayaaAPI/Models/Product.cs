@@ -16,7 +16,7 @@ namespace bayaaAPI.Models
 
         public string Description { get; set; } = string.Empty;
 
-        public double Rating { get; set; }
+        public decimal Rating { get; set; }
 
         public int Reviews { get; set; }
 
@@ -27,5 +27,8 @@ namespace bayaaAPI.Models
         public int? CategoryId { get; set; }
 
         public Category? Category { get; set; }
+
+        public ICollection<Review> ReviewsList { get; set; }
+            = new List<Review>();
     }
 }

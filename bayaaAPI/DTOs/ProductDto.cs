@@ -18,7 +18,7 @@
 
         public string Description { get; set; } = "";
 
-        public double? Rating { get; set; }
+        public decimal? Rating { get; set; }
 
         public int Reviews { get; set; }
 

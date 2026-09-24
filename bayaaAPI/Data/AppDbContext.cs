@@ -15,6 +15,7 @@ namespace bayaaAPI.Data
         public DbSet<Order> Orders => Set<Order>();
         public DbSet<OrderItem> OrderItems => Set<OrderItem>();
         public DbSet<WishlistItem> WishlistItems { get; set; }
+        public DbSet<Review> Reviews { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -51,14 +52,30 @@ namespace bayaaAPI.Data
                 .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<WishlistItem>()
-            .HasIndex(x => new
-            {
-                x.UserId,
-                x.ProductId
-            })
-            .IsUnique();
+                .HasIndex(x => new
+                {
+                    x.UserId,
+                    x.ProductId
+                })
+                .IsUnique();
 
+            modelBuilder.Entity<Review>()
+                .HasOne(r => r.Product)
+                .WithMany(p => p.ReviewsList)
+                .HasForeignKey(r => r.ProductId);
 
+            modelBuilder.Entity<Review>()
+                .HasOne(r => r.User)
+                .WithMany(u => u.Reviews)
+                .HasForeignKey(r => r.UserId);
+
+            modelBuilder.Entity<Review>()
+                .HasIndex(r => new
+                {
+                    r.ProductId,
+                    r.UserId
+                })
+                .IsUnique();
 
         }
 
