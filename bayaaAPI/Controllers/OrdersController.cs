@@ -1,6 +1,7 @@
 ﻿using bayaaAPI.Data;
 using bayaaAPI.DTOs;
 using bayaaAPI.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -8,6 +9,7 @@ using System.Security.Claims;
 
 namespace bayaaAPI.Controllers
 {
+    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class OrdersController : ControllerBase
@@ -231,6 +233,7 @@ namespace bayaaAPI.Controllers
                     Items = o.Items
                     .Select(i => new OrderItemResponseDto
                     {
+                        Id = i.Id,
                         ProductId = i.ProductId,
                         ProductName = i.ProductName,
                         UnitPrice = i.UnitPrice,
@@ -279,12 +282,63 @@ namespace bayaaAPI.Controllers
                     Items = o.Items
                         .Select(i => new OrderItemResponseDto
                         {
+                            Id = i.Id,
                             ProductId = i.ProductId,
                             ProductName = i.ProductName,
                             UnitPrice = i.UnitPrice,
                             Quantity = i.Quantity,
                         })
                         .ToList()
+                })
+                .FirstOrDefaultAsync();
+
+            if(order == null)
+            {
+                return NotFound("Order not found");
+            }
+
+            return Ok(order);
+        }
+
+
+        [HttpGet("admin/{id:int}")]
+        public async Task<ActionResult<OrderDto>> GetAdminOrder(int id)
+        {
+            var order = await _context.Orders
+                .Where(o => o.Id == id)
+                .Include(o => o.Items)
+                .Select(o => new OrderDto
+                {
+                    Id = o.Id,
+                    OrderNumber = o.OrderNumber,
+
+                    CustomerName = o.CustomerName,
+                    Mobile = o.Mobile,
+                    Email = o.Email,
+
+                    Division = o.Division,
+                    District = o.District,
+                    Area = o.Area,
+                    Address = o.Address,
+
+                    PaymentMethod = o.PaymentMethod,
+                    PaymentStatus = o.PaymentStatus,
+
+                    Subtotal = o.Subtotal,
+                    DeliveryCharge = o.DeliveryCharge,
+                    TotalAmount = o.TotalAmount,
+
+                    Status = o.Status,
+                    CreatedAt = o.CreatedAt,
+
+                    Items = o.Items.Select(i => new OrderItemResponseDto
+                    {
+                        Id = i.Id,
+                        ProductId = i.ProductId,
+                        ProductName = i.ProductName,
+                        UnitPrice = i.UnitPrice,
+                        Quantity = i.Quantity
+                    }).ToList()
                 })
                 .FirstOrDefaultAsync();
 
