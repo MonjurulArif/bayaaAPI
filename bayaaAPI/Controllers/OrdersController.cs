@@ -167,6 +167,16 @@ namespace bayaaAPI.Controllers
 
                 await _context.SaveChangesAsync();
 
+                var cart = await _context.Carts
+                    .Include(c => c.Items)
+                    .FirstOrDefaultAsync(c => c.UserId == userId);
+
+                if(cart != null && cart.Items.Any())
+                {
+                    _context.CartItems.RemoveRange(cart.Items);
+                    await _context.SaveChangesAsync();
+                }
+
                 await transaction.CommitAsync();
 
                 return Ok(new
