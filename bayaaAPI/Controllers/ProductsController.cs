@@ -4,6 +4,7 @@ using bayaaAPI.DTOs;
 using bayaaAPI.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 
 namespace bayaaAPI.Controllers
 {
@@ -25,8 +26,8 @@ namespace bayaaAPI.Controllers
         {
 
             // Fix invalid pagination values
-            var page = query.Page < 1 ? 1 : query.Page;
-            var pageSize = query.PageSize < 1 ? 20 : query.PageSize;
+            var page = Math.Max(query.Page, 1);
+            var pageSize = query.PageSize < 1 ? 20 : Math.Min(query.PageSize, 100);
 
             // Get all products with their categories by joining the Products and Categories tables
             var products = _context.Products
@@ -106,7 +107,7 @@ namespace bayaaAPI.Controllers
             // Pagination
             var items = await products
                 .Skip((page - 1) * pageSize)
-                .Take(query.PageSize)
+                .Take(pageSize)
                 .Select(p => new ProductDto
                 {
                     Id = p.Id,
@@ -118,7 +119,8 @@ namespace bayaaAPI.Controllers
                     Category = p.Category != null ? p.Category.Name : string.Empty,
                     Rating = p.Rating,
                     Reviews = p.Reviews,
-                    Stock = p.Stock
+                    Stock = p.Stock,
+                    Description = p.Description
                 })
                 .ToListAsync();
 
@@ -126,8 +128,8 @@ namespace bayaaAPI.Controllers
             return Ok(new
             {
                 TotalProducts = totalProducts,
-                Page = query.Page,
-                PageSize = query.PageSize,
+                Page = page,
+                PageSize = pageSize,
                 TotalPages = (int)Math.Ceiling( totalProducts / (double)pageSize),
                 Products = items
             });
@@ -157,7 +159,8 @@ namespace bayaaAPI.Controllers
                 Category = product.Category != null ? product.Category.Name : string.Empty,
                 Rating = product.Rating,
                 Reviews = product.Reviews,
-                Stock = product.Stock
+                Stock = product.Stock,
+                Description = product.Description
             });
         }
 
@@ -241,7 +244,8 @@ namespace bayaaAPI.Controllers
                     Category = p.Category != null ? p.Category.Name : string.Empty,
                     Rating = p.Rating,
                     Reviews = p.Reviews,
-                    Stock = p.Stock
+                    Stock = p.Stock,
+                    Description = p.Description
                 })
                 .ToListAsync();
 
@@ -256,6 +260,7 @@ namespace bayaaAPI.Controllers
 
 
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult> CreateProduct(CreateProductDto dto)
         {
             var product = new Product
@@ -296,16 +301,19 @@ namespace bayaaAPI.Controllers
                 Price = product.Price,
                 Thumbnail = product.Thumbnail,
                 Category = product.Category?.Name ?? string.Empty,
+                CategoryId = product.CategoryId,
                 Rating = product.Rating,
                 Reviews = product.Reviews,
-                Stock = product.Stock
+                Stock = product.Stock,
+                Description = product.Description
             };
 
             return Ok(dto);
         }
 
 
-        [HttpPut("{id}")]
+        [HttpPut("{id:int}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> UpdateProduct(int id, UpdateProductDto dto)
         {
             var product = await _context.Products.FindAsync(id);
@@ -329,7 +337,8 @@ namespace bayaaAPI.Controllers
         }
 
 
-        [HttpDelete("{id}")]
+        [HttpDelete("{id:int}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteProduct(int id)
         {
             var product = await _context.Products.FindAsync(id);

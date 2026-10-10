@@ -59,8 +59,8 @@ namespace bayaaAPI.Controllers
             {
                 Email = isEmail ? login : null,                
                 Mobile = isEmail ? null : login,
-
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password)
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
+                Role = "Customer"
             };
 
             //Defines which table to add the user in the database
@@ -110,7 +110,8 @@ namespace bayaaAPI.Controllers
             var claims = new[]
             {
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new Claim(ClaimTypes.Name, user.Email ?? user.Mobile ?? "")
+                new Claim(ClaimTypes.Name, user.Email ?? user.Mobile ?? ""),
+                new Claim(ClaimTypes.Role, user.Role)
             };
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Key"]!));

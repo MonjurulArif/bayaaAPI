@@ -33,5 +33,7 @@
 
         public ICollection<Review> Reviews { get; set; }
             = new List<Review>();
+
+        public string Role { get; set; } = "Customer";
     }
 }
